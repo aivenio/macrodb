@@ -14,9 +14,9 @@ and seamless integration with forecasting models through structured indicators a
 
 ## Project Disclaimer
 
-Use of this service is limited only to provide a data structure to easily manage a database containing various data points to
-analyse macro-economics factors. Certain data which are *non-sensitive* and are available in the *public* domain maybe shipped
-alongside the project. Other data may not be shared and the organization is not bound to share the same with the general
-public. Check [disclaimer](./DISCLAIMER.md) for more information and full limitations of using the project.
+This service is intended solely to provide a data structure that enables efficient management of databases containing various
+data points for macroeconomic analysis. Certain *non-sensitive* data that is *available in the public domain* may be distributed
+with the project. Other data may not be shared, and the organization is under no obligation to make such data available to the
+general public. For additional details, please refer to the [disclaimer](./DISCLAIMER.md) statement.
 
 </div>
