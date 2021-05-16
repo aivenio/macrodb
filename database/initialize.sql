@@ -12,6 +12,9 @@ Copyright © [2021] Debmalya Pramanik (ZenithClown), AivenIO DBA
 
 \echo 'Creating Schema(s) ...'
 
+CREATE SCHEMA IF NOT EXISTS
+    common AUTHORIZATION postgres;
+
 /********************************************************************
 SQL Table Schema Execution Order - STRICT Follow
 ********************************************************************/
