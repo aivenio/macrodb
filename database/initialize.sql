@@ -11,3 +11,9 @@ Copyright © [2021] Debmalya Pramanik (ZenithClown), AivenIO DBA
 ********************************************************************/
 
 \echo 'Creating Schema(s) ...'
+
+/********************************************************************
+SQL Table Schema Execution Order - STRICT Follow
+********************************************************************/
+
+\i database/schema/public/initialize.sql
