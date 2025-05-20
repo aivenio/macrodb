@@ -19,14 +19,14 @@ CREATE TABLE IF NOT EXISTS common.forex_rate_tx (
     base_currency_code
         CHAR(3) NOT NULL
         CONSTRAINT fk_base_currency_code
-            REFERENCES common.currency_master(currency_code)
+            REFERENCES common.currency_mw(currency_code)
             ON UPDATE CASCADE
             ON DELETE SET NULL,
 
     target_currency_code
         CHAR(3) NOT NULL
         CONSTRAINT fk_target_currency_code
-            REFERENCES common.currency_master(currency_code)
+            REFERENCES common.currency_mw(currency_code)
             ON UPDATE CASCADE
             ON DELETE SET NULL,
 
