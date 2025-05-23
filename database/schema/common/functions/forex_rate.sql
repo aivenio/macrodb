@@ -14,8 +14,8 @@ following parameters:
         current date),
     * ``p_base_currency_code`` - The base currency code (default is
         INR),
-    * ``p_data_source_private`` - The private data source name
-        (default is ERAPI).
+    * ``p_date_source_proxy_id`` - The data source proxy ID which is
+        internal private name of the data source (default is 1).
 
 For simplicity purpose, the function(s) are named with "source" short
 for "data source" and "range" for the "date range", to reduce the
