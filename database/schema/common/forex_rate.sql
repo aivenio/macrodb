@@ -33,12 +33,6 @@ CREATE TABLE IF NOT EXISTS common.forex_rate_tx (
     exchange_rate
         NUMERIC(19, 6) NOT NULL,
 
-    created_on
-        TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    updated_on
-        TIMESTAMPTZ,
-
     data_source_proxy_id
         SMALLINT NOT NULL
         CONSTRAINT fk_forex_data_source_proxy_id
