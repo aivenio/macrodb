@@ -55,3 +55,44 @@ BEGIN
 
 END; $$
 LANGUAGE 'plpgsql';
+
+
+CREATE OR REPLACE FUNCTION common.forex_from_source_for_range_base_udf (
+    p_start_date DATE DEFAULT (CURRENT_DATE - INTERVAL '365 D')::DATE,
+    p_final_date DATE DEFAULT CURRENT_DATE,
+    p_date_source_proxy_id INTEGER DEFAULT 1,
+    p_base_currency_code CHAR(3) DEFAULT 'INR'
+
+) RETURNS TABLE (
+    effective_date DATE,
+    base_currency_code CHAR(3),
+    target_currency_code CHAR(3),
+    exchange_rate NUMERIC(19, 6)
+) AS $$
+
+BEGIN
+    RETURN QUERY
+
+    SELECT
+        ltbl.effective_date
+        , rtbl.target_currency_code AS base_currency_code
+        , ltbl.target_currency_code AS target_currency_code
+        , (ltbl.exchange_rate / rtbl.exchange_rate)::NUMERIC(19, 6) AS exchange_rate
+    FROM common.forex_from_source_for_range_udf(
+        p_start_date
+        , p_final_date
+        , p_date_source_proxy_id
+    ) ltbl
+    JOIN common.forex_from_source_for_range_udf(
+        p_start_date
+        , p_final_date
+        , p_date_source_proxy_id
+    ) rtbl ON ltbl.effective_date = rtbl.effective_date
+    WHERE
+        rtbl.target_currency_code = p_base_currency_code
+    ORDER BY
+        ltbl.effective_date DESC
+        , ltbl.target_currency_code;
+
+END; $$
+LANGUAGE 'plpgsql';
