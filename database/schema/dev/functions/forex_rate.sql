@@ -12,6 +12,9 @@ common schema as ``common.forex_rate_tx``. The function(s) are:
         currencies in the forex rates table, which is defined under
         the currency master ``common.currency_mw`` table.
 
+    * ``dev.missing_forex_for_currencies_udf`` - To find the missing
+        forex rates for a list of currencies.
+
 Copywright © [2025] Debmalya Pramanik, DigitPhilia INC.
 ********************************************************************/
 
@@ -60,6 +63,53 @@ BEGIN
         FROM common.forex_rate_tx
     )
     ORDER BY currency_code;
+
+END; $$
+LANGUAGE 'plpgsql';
+
+
+CREATE OR REPLACE FUNCTION dev.missing_forex_for_currencies_udf (
+    p_currency_codes CHAR(3)[]
+) RETURNS TABLE (
+    missing_date DATE
+    , missing_currency CHAR(3)
+    , missing_currency_name VARCHAR(64)
+    , missing_currency_type CHAR(1)
+    , missing_currency_subtype CHAR(1)
+) AS $$
+
+BEGIN
+    RETURN QUERY
+
+    SELECT
+        gs.dates::DATE AS missing_date
+        , curlist.currency_code AS missing_currency
+        , currency.currency_name AS missing_currency_name
+        , currency.currency_type AS missing_currency_type
+        , currency.currency_subtype AS missing_currency_subtype
+    FROM (
+        SELECT GENERATE_SERIES(
+            (SELECT MIN(effective_date) FROM common.forex_rate_tx)
+            , (SELECT MAX(effective_date) FROM common.forex_rate_tx)
+            , INTERVAL '1 D'
+        ) AS dates
+    ) gs
+
+    CROSS JOIN (
+        SELECT UNNEST(p_currency_codes) AS currency_code
+    ) curlist
+
+    LEFT JOIN common.forex_rate_tx forex ON
+        gs.dates = forex.effective_date
+        AND curlist.currency_code = forex.target_currency_code
+
+    LEFT JOIN common.currency_mw currency ON
+        curlist.currency_code = currency.currency_code
+
+    WHERE forex.target_currency_code IS NULL
+    ORDER BY
+        gs.dates DESC
+        , currency.currency_code;
 
 END; $$
 LANGUAGE 'plpgsql';
