@@ -18,7 +18,10 @@ common schema as ``common.forex_rate_tx``. The function(s) are:
 Copywright © [2025] Debmalya Pramanik, DigitPhilia INC.
 ********************************************************************/
 
-CREATE OR REPLACE FUNCTION dev.missing_date_in_forex_udf ()
+CREATE OR REPLACE FUNCTION dev.missing_date_in_forex_udf (
+    p_start_date DATE DEFAULT NULL
+    , p_end_date DATE DEFAULT NULL
+)
 RETURNS TABLE (
     missing_date DATE
 ) AS $$
@@ -29,8 +32,16 @@ BEGIN
     SELECT
         CAST(dates AS DATE) AS missing_date
     FROM GENERATE_SERIES(
-        (SELECT MIN(effective_date) FROM common.forex_rate_tx)
-        , (SELECT MAX(effective_date) FROM common.forex_rate_tx)
+        CASE
+            WHEN p_start_date IS NULL THEN
+                (SELECT MIN(effective_date) FROM common.forex_rate_tx)
+            ELSE p_start_date
+        END
+        , CASE
+            WHEN p_end_date IS NULL THEN
+                (SELECT MAX(effective_date) FROM common.forex_rate_tx)
+            ELSE p_end_date
+        END
         , INTERVAL '1 D'
     ) AS dates
     WHERE dates NOT IN (SELECT DISTINCT effective_date FROM common.forex_rate_tx)
@@ -40,7 +51,10 @@ END; $$
 LANGUAGE 'plpgsql';
 
 
-CREATE OR REPLACE FUNCTION dev.missing_currency_in_forex_udf ()
+CREATE OR REPLACE FUNCTION dev.missing_currency_in_forex_udf (
+    p_start_date DATE DEFAULT NULL
+    , p_end_date DATE DEFAULT NULL
+)
 RETURNS TABLE (
     missing_currency CHAR(3)
     , missing_currency_name VARCHAR(64)
@@ -61,6 +75,20 @@ BEGIN
         SELECT
             DISTINCT target_currency_code
         FROM common.forex_rate_tx
+        WHERE
+            (effective_date BETWEEN
+                CASE
+                    WHEN p_start_date IS NULL THEN
+                        (SELECT MIN(effective_date) FROM common.forex_rate_tx)
+                    ELSE p_start_date
+                END
+                AND
+                CASE
+                    WHEN p_end_date IS NULL THEN
+                        (SELECT MAX(effective_date) FROM common.forex_rate_tx)
+                    ELSE p_end_date
+                END
+            )
     )
     ORDER BY currency_code;
 
@@ -69,7 +97,9 @@ LANGUAGE 'plpgsql';
 
 
 CREATE OR REPLACE FUNCTION dev.missing_forex_for_currencies_udf (
-    p_currency_codes CHAR(3)[]
+    p_start_date DATE DEFAULT NULL
+    , p_end_date DATE DEFAULT NULL
+    , p_currency_codes CHAR(3)[] DEFAULT ARRAY['INR', 'USD', 'EUR', 'JPY', 'GBP']
 ) RETURNS TABLE (
     missing_date DATE
     , missing_currency CHAR(3)
@@ -89,8 +119,16 @@ BEGIN
         , currency.currency_subtype AS missing_currency_subtype
     FROM (
         SELECT GENERATE_SERIES(
-            (SELECT MIN(effective_date) FROM common.forex_rate_tx)
-            , (SELECT MAX(effective_date) FROM common.forex_rate_tx)
+            CASE
+                WHEN p_start_date IS NULL THEN
+                    (SELECT MIN(effective_date) FROM common.forex_rate_tx)
+                ELSE p_start_date
+            END
+            , CASE
+                WHEN p_end_date IS NULL THEN
+                    (SELECT MAX(effective_date) FROM common.forex_rate_tx)
+                ELSE p_end_date
+            END
             , INTERVAL '1 D'
         ) AS dates
     ) gs
