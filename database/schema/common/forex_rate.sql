@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS common.forex_rate_tx (
         NUMERIC(19, 6) NOT NULL,
 
     data_source_proxy_id
-        SMALLINT NOT NULL
+        CHAR(4) NOT NULL
         CONSTRAINT fk_forex_data_source_proxy_id
             REFERENCES public.data_source_proxy_mw(data_source_proxy_id)
             ON UPDATE CASCADE
