@@ -11,7 +11,7 @@ Copywright © [2025] Debmalya Pramanik, DigitPhilia INC.
 
 CREATE TABLE IF NOT EXISTS common.forex_rate_tx (
     _id
-        SERIAL PRIMARY KEY,
+        INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 
     effective_date
         DATE NOT NULL,
