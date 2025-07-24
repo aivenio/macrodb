@@ -38,5 +38,8 @@ CREATE TABLE IF NOT EXISTS common.forex_rate_tx (
         CONSTRAINT fk_forex_data_source_proxy_id
             REFERENCES public.data_source_proxy_mw(data_source_proxy_id)
             ON UPDATE CASCADE
-            ON DELETE SET NULL
+            ON DELETE SET NULL,
+
+    CONSTRAINT uq_forex_value_from_source
+        UNIQUE (effective_date, base_currency_code, target_currency_code, data_source_proxy_id)
 );
