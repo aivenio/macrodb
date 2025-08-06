@@ -27,7 +27,7 @@ Copywright © [2025] Debmalya Pramanik, DigitPhilia INC.
 CREATE OR REPLACE FUNCTION common.forex_from_source_for_range_udf (
     p_start_date DATE DEFAULT (CURRENT_DATE - INTERVAL '365 D')::DATE,
     p_final_date DATE DEFAULT CURRENT_DATE,
-    p_date_source_proxy_id CHAR(4) DEFAULT 'R001'
+    p_date_source_proxy_id public.data_source_proxy_id DEFAULT 'R001'
 
 ) RETURNS TABLE (
     effective_date DATE,
@@ -60,7 +60,7 @@ LANGUAGE 'plpgsql';
 CREATE OR REPLACE FUNCTION common.forex_from_source_for_range_base_udf (
     p_start_date DATE DEFAULT (CURRENT_DATE - INTERVAL '365 D')::DATE,
     p_final_date DATE DEFAULT CURRENT_DATE,
-    p_date_source_proxy_id CHAR(4) DEFAULT 'R001',
+    p_date_source_proxy_id public.data_source_proxy_id DEFAULT 'R001',
     p_base_currency_code CHAR(3) DEFAULT 'INR'
 
 ) RETURNS TABLE (
