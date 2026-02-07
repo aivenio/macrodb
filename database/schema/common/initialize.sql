@@ -2,6 +2,7 @@
 
 \i database/schema/common/tables/country.sql
 \i database/schema/common/tables/currency.sql
+\i database/schema/common/tables/forex_rate.sql
 
 \echo 'Populating with Initial Seed Data ...'
 
