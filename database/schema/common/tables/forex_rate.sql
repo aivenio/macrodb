@@ -9,8 +9,9 @@ data sources for more information.
 ********************************************************************/
 
 CREATE TABLE IF NOT EXISTS common.forex_rate_tx (
-    _id
-        INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    forex_record_id
+        INTEGER GENERATED ALWAYS AS IDENTITY
+        CONSTRAINT pk_forex_record_id PRIMARY KEY,
 
     effective_date
         DATE NOT NULL,
@@ -32,8 +33,8 @@ CREATE TABLE IF NOT EXISTS common.forex_rate_tx (
     exchange_rate
         NUMERIC(19, 6) NOT NULL,
 
-    data_source_proxy_id
-        CHAR(4) NOT NULL
+    data_source_id
+        CHAR(5) NOT NULL
         CONSTRAINT fk_forex_data_source_id
             REFERENCES public.data_source_mw(data_source_id)
             ON UPDATE CASCADE
