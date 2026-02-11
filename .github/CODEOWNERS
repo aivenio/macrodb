@@ -8,3 +8,7 @@
 # files available under the repository, unless so specified by the order
 # of precendence (if found later).
 * @ZenithClown
+
+# all the documents are also owned by organization owner, check organization
+# documents for more information
+md @ZenithClown @vigilantloki
