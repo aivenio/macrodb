@@ -15,7 +15,9 @@ common schema as ``common.forex_rate_tx``. The function(s) are:
     * ``dev.missing_forex_for_currencies_udf`` - To find the missing
         forex rates for a list of currencies.
 
-Copywright © [2025] Debmalya Pramanik, DigitPhilia INC.
+The functions are to be used by developers and/or administrators of
+the datbase, thus a seperate schema is defined for schema level grant
+permission settings.
 ********************************************************************/
 
 CREATE OR REPLACE FUNCTION dev.missing_date_in_forex_udf (
