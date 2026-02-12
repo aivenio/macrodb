@@ -22,7 +22,7 @@ permission settings.
 
 CREATE OR REPLACE FUNCTION dev.missing_date_in_forex_udf (
     p_start_date DATE DEFAULT NULL
-    , p_end_date DATE DEFAULT NULL
+    , p_end_date DATE DEFAULT (CURRENT_DATE - INTERVAL '1 D')::DATE
 )
 RETURNS TABLE (
     missing_date DATE
@@ -46,7 +46,9 @@ BEGIN
         END
         , INTERVAL '1 D'
     ) AS dates
-    WHERE dates NOT IN (SELECT DISTINCT effective_date FROM common.forex_rate_tx)
+    WHERE dates NOT IN (
+        SELECT DISTINCT effective_date FROM common.forex_rate_tx
+    )
     ORDER BY dates DESC;
 
 END; $$
@@ -55,7 +57,7 @@ LANGUAGE 'plpgsql';
 
 CREATE OR REPLACE FUNCTION dev.missing_currency_in_forex_udf (
     p_start_date DATE DEFAULT NULL
-    , p_end_date DATE DEFAULT NULL
+    , p_end_date DATE DEFAULT (CURRENT_DATE - INTERVAL '1 D')::DATE
 )
 RETURNS TABLE (
     missing_currency CHAR(3)
@@ -100,7 +102,7 @@ LANGUAGE 'plpgsql';
 
 CREATE OR REPLACE FUNCTION dev.missing_forex_for_currencies_udf (
     p_start_date DATE DEFAULT NULL
-    , p_end_date DATE DEFAULT NULL
+    , p_end_date DATE DEFAULT (CURRENT_DATE - INTERVAL '1 D')::DATE
     , p_currency_codes CHAR(3)[] DEFAULT ARRAY['INR', 'USD', 'EUR', 'JPY', 'GBP']
 ) RETURNS TABLE (
     missing_date DATE
