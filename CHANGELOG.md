@@ -37,6 +37,13 @@ We're pleased to announce that the PostgreSQL database management for macroecono
 first initial public release was made on 7th Feburary 2026 (the commit and source code is thus has an older timestamp).
 The first release brings the following features.
 
+#### v1.1.0 | WIP
+
+The releases on providing additional support and utility functions that can be used to integrate with external modules
+giving additional capabilities.
+
+  * 🎉 Added function to return data in a desired base for direct value conversion.
+
 #### v1.1.0 | 2026.02.07
 
 The release fixes minor bugs and enhancements for forward integration. The tables are further refined and made generic
