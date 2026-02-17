@@ -12,3 +12,8 @@ FOR TABLE
   common.country_mw
   , common.state_mw
   , common.city_mw;
+
+
+CREATE PUBLICATION macrodb_currency_table
+FOR TABLE
+  common.currency_mw;
