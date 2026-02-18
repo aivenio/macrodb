@@ -64,6 +64,46 @@ user. This ensures that there is no accidental data insertion or key creation.
 REVOKE INSERT, UPDATE, DELETE ON <table> FROM PUBLIC;
 ```
 
+A subscriber schema must have the table schema already present to fetch data, but we can safely ignore all the foreign key constraints
+in the subscriber table which is a common practice to reduce dependency and load-time check as `SUBSCRIBER` does not gurantee the
+order in which a table is logically fetched ([docs](https://www.postgresql.org/docs/17/logical-replication.html)) thus we can remove
+the constraints to keep the data synced without an error.
+
+```sql
+CREATE TABLE <table> (
+  record_id
+    INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+...
+);
+
+# check the list of foreign keys in the table using information schema
+SELECT
+  tc.table_catalog
+  , tc.table_name
+  , tc.table_schema
+  , tc.constraint_name
+  , kcu.column_name
+  , ccu.table_catalog AS foreign_table_catalog
+  , ccu.table_name AS foreign_table_name
+  , ccu.column_name AS foreign_column_name
+FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc
+
+JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE kcu ON
+  tc.constraint_name = kcu.constraint_name
+  AND tc.constraint_schema = kcu.constraint_schema
+
+JOIN INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE ccu ON
+  tc.constraint_name = ccu.constraint_name
+  AND tc.constraint_schema = ccu.constraint_schema
+
+WHERE
+  tc.constraint_type = 'FOREIGN KEY'
+  AND tc.table_name = '<table-name>'
+
+# then all the constraints can be dropped one by one
+DROP CONSTRAINT fk_* -- all foreign keys should be dropped
+```
+
 ### Published Tables
 
 The typical metadata information to maintain a schema (say, social indicators) that is not bound to a particular geography requires a
