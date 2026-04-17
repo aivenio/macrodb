@@ -14,8 +14,8 @@ and seamless integration with forecasting models through structured indicators a
 
 ## Dependent Project(s)
 
-A list of dependent projects that uses the **`macrodb`** as a base. These projects may/may not be related/owned by the
-current repository/organization owner and may follow a different licensing options. Please check individual repository for
+A list of dependent projects that use the **`macrodb`** as a base. These projects may/may not be related/owned by the
+current repository/organization owner and may follow different licensing options. Please check the individual repository for
 more details.
 
 <details>
@@ -65,7 +65,7 @@ REVOKE INSERT, UPDATE, DELETE ON <table> FROM PUBLIC;
 ```
 
 A subscriber schema must have the table schema already present to fetch data, but we can safely ignore all the foreign key constraints
-in the subscriber table which is a common practice to reduce dependency and load-time check as `SUBSCRIBER` does not gurantee the
+in the subscriber table, which is a common practice to reduce dependency and load-time check as `SUBSCRIBER` does not guarantee the
 order in which a table is logically fetched ([docs](https://www.postgresql.org/docs/17/logical-replication.html)) thus we can remove
 the constraints to keep the data synced without an error.
 
@@ -76,7 +76,7 @@ CREATE TABLE <table> (
 ...
 );
 
-# check the list of foreign keys in the table using information schema
+# check the list of foreign keys in the table using the information schema
 SELECT
   tc.table_catalog
   , tc.table_name
@@ -108,7 +108,7 @@ DROP CONSTRAINT fk_* -- all foreign keys should be dropped
 
 The typical metadata information to maintain a schema (say, social indicators) that is not bound to a particular geography requires a
 special approach in data handling and scrutiny. The following macroeconomic tables are published. The publication script file is
-available at [publication.cong.sql](./database/publication.cong.sql) file. Details of each type of publication are as follows.
+available at [publication.conf.sql](./database/publication.conf.sql) file. Details of each type of publication are as follows.
 
 #### Geography Information | `macrodb_geography_table`
 
