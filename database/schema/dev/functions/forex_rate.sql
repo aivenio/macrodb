@@ -15,6 +15,9 @@ common schema as ``common.forex_rate_tx``. The function(s) are:
     * ``dev.missing_forex_for_currencies_udf`` - To find the missing
         forex rates for a list of currencies.
 
+-- ..versionchanged:: 2026-04-18 Changed the default end date to the
+   last day of the previous month.
+
 The functions are to be used by developers and/or administrators of
 the datbase, thus a seperate schema is defined for schema level grant
 permission settings.
@@ -22,7 +25,7 @@ permission settings.
 
 CREATE OR REPLACE FUNCTION dev.missing_date_in_forex_udf (
     p_start_date DATE DEFAULT NULL
-    , p_end_date DATE DEFAULT (CURRENT_DATE - INTERVAL '1 D')::DATE
+    , p_end_date DATE DEFAULT (DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '1 D')::DATE
 )
 RETURNS TABLE (
     missing_date DATE
@@ -57,7 +60,7 @@ LANGUAGE 'plpgsql';
 
 CREATE OR REPLACE FUNCTION dev.missing_currency_in_forex_udf (
     p_start_date DATE DEFAULT NULL
-    , p_end_date DATE DEFAULT (CURRENT_DATE - INTERVAL '1 D')::DATE
+    , p_end_date DATE DEFAULT (DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '1 D')::DATE
 )
 RETURNS TABLE (
     missing_currency CHAR(3)
@@ -102,7 +105,7 @@ LANGUAGE 'plpgsql';
 
 CREATE OR REPLACE FUNCTION dev.missing_forex_for_currencies_udf (
     p_start_date DATE DEFAULT NULL
-    , p_end_date DATE DEFAULT (CURRENT_DATE - INTERVAL '1 D')::DATE
+    , p_end_date DATE DEFAULT (DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '1 D')::DATE
     , p_currency_codes CHAR(3)[] DEFAULT ARRAY['INR', 'USD', 'EUR', 'JPY', 'GBP']
 ) RETURNS TABLE (
     missing_date DATE
