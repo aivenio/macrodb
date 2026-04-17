@@ -1,0 +1,7 @@
+.git/
+docs/
+schemaspy/
+database/backup/
+*.md
+LICENSE
+DISCLAIMER.md
