@@ -112,8 +112,13 @@ available at [publication.conf.sql](./database/publication.conf.sql) file. Detai
 
 #### Geography Information | `macrodb_geography_table`
 
-The MacroDB structure is defined to make the data non-geographically aligned, thus the country, state, and city information are
-exposed to the subscriber databases for foreign key mapping.
+The MacroDB structure is defined to make the data non-geographically aligned; thus, the country (`common.country_mw`),
+state (`common.state_mw`), and city (`common.city_mw`) information are exposed to the subscriber databases for foreign key mapping.
+
+#### Currency Master Table | `macrodb_currency_table`
+
+The `common.currency_mw` table exposes a global list of currencies, their standard ISO codes, minor units and other details that
+may be required to build an agnostic system.
 
 ## Project Disclaimer
 
