@@ -17,7 +17,7 @@ FROM postgres:18.1-bookworm
 
 LABEL maintainer="Debmalya Pramanik (ZenithClown)" \
       description="PostgreSQL Database for Macroeconomics Data Testing" \
-      version="1.0"
+      version="1.1.2"
 
 ENV POSTGRES_DB="macrodb" \
     POSTGRES_USER="postgres" \
