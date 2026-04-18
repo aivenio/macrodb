@@ -37,7 +37,16 @@ We're pleased to announce that the PostgreSQL database management for macroecono
 first initial public release was made on 7th Feburary 2026 (the commit and source code is thus has an older timestamp).
 The first release brings the following features.
 
-#### v1.1.1 | 2026.02-12
+#### v1.1.2 | 2026-04-18
+
+Security fixes, docker file configuration and publication of tables are added into this release with minor changes and bug
+fixes. This release has the following new features:
+
+  * ✨ Added [`Dockerfile`](./Dockerfile) for faster testing and standalone isolation system development,
+  * ⚙️ Added security checks to prevent data or security code leaks in the repository, and
+  * 🐛 Other minor bug fixes and enhancements.
+
+#### v1.1.1 | 2026-02-12
 
 The releases on providing additional support and utility functions that can be used to integrate with external modules
 giving additional capabilities.
@@ -45,7 +54,7 @@ giving additional capabilities.
   * 🎉 Added function to return data in a desired base for direct value conversion, and
   * 🎉 Added developer/administrator function for managing forex tables and get missing data information.
 
-#### v1.1.0 | 2026.02.07
+#### v1.1.0 | 2026-02-07
 
 The release fixes minor bugs and enhancements for forward integration. The tables are further refined and made generic
 thus allowing more robust controls.
@@ -54,7 +63,7 @@ thus allowing more robust controls.
   * 🛠️ Minor bug fixes and improvements for currency and country tables, and
   * 🎉 Create database initialization statement can be integrated with docker for testing.
 
-#### v1.0.0 | 2026.02.07
+#### v1.0.0 | 2026-02-07
 
 The initial release is designed to be simple, effective and create a backbone for data-driven analysis across multiple
 geographic levels (country, state, etc.) and bring seamless integration with any models.
