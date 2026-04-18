@@ -28,18 +28,20 @@ following parameters:
 For simplicity purpose, the function(s) are named with "src" short
 for "data source" and "range" for the "date range", to reduce the
 length of the function name.
+
+-- ..versionchanged:: 2026-04-18 Refactored function to use CTE that
+    improves performance by single scanning the table.
 ********************************************************************/
 
 CREATE OR REPLACE FUNCTION common.forex_from_src_for_range_udf (
-    p_start_date DATE DEFAULT (CURRENT_DATE - INTERVAL '365 D')::DATE,
-    p_final_date DATE DEFAULT CURRENT_DATE,
-    p_date_source_id CHAR(5) DEFAULT 'ERAPI'
-
+    p_start_date DATE DEFAULT (CURRENT_DATE - INTERVAL '365 D')::DATE
+    , p_final_date DATE DEFAULT CURRENT_DATE
+    , p_date_source_id CHAR(5) DEFAULT 'ERAPI'
 ) RETURNS TABLE (
-    effective_date DATE,
-    base_currency_code CHAR(3),
-    target_currency_code CHAR(3),
-    exchange_rate NUMERIC(19, 6)
+    effective_date DATE
+    , base_currency_code CHAR(3)
+    , target_currency_code CHAR(3)
+    , exchange_rate NUMERIC(19, 6)
 ) AS $$
 
 BEGIN
@@ -64,36 +66,41 @@ LANGUAGE 'plpgsql';
 
 
 CREATE OR REPLACE FUNCTION common.forex_from_src_for_range_base_udf (
-    p_start_date DATE DEFAULT (CURRENT_DATE - INTERVAL '365 D')::DATE,
-    p_final_date DATE DEFAULT CURRENT_DATE,
-    p_date_source_id CHAR(5) DEFAULT 'ERAPI',
-    p_base_currency_code CHAR(3) DEFAULT 'INR'
-
+    p_start_date DATE DEFAULT (CURRENT_DATE - INTERVAL '365 D')::DATE
+    , p_final_date DATE DEFAULT CURRENT_DATE
+    , p_date_source_id CHAR(5) DEFAULT 'ERAPI'
+    , p_base_currency_code CHAR(3) DEFAULT 'INR'
 ) RETURNS TABLE (
-    effective_date DATE,
-    base_currency_code CHAR(3),
-    target_currency_code CHAR(3),
-    exchange_rate NUMERIC(19, 6)
+    effective_date DATE
+    , base_currency_code CHAR(3)
+    , target_currency_code CHAR(3)
+    , exchange_rate NUMERIC(19, 6)
 ) AS $$
 
 BEGIN
     RETURN QUERY
 
+    WITH base_rates AS (
+        SELECT
+            forex.effective_date
+            , forex.base_currency_code
+            , forex.target_currency_code
+            , forex.exchange_rate
+        FROM common.forex_rate_tx AS forex
+        WHERE
+            forex.effective_date BETWEEN p_start_date AND p_final_date
+            AND forex.data_source_id = p_date_source_id
+    )
     SELECT
         ltbl.effective_date
         , rtbl.target_currency_code AS base_currency_code
         , ltbl.target_currency_code AS target_currency_code
-        , (ltbl.exchange_rate / rtbl.exchange_rate)::NUMERIC(19, 6) AS exchange_rate
-    FROM common.forex_from_src_for_range_udf(
-        p_start_date
-        , p_final_date
-        , p_date_source_id
-    ) ltbl
-    JOIN common.forex_from_src_for_range_udf(
-        p_start_date
-        , p_final_date
-        , p_date_source_id
-    ) rtbl ON ltbl.effective_date = rtbl.effective_date
+        , (
+            ltbl.exchange_rate / rtbl.exchange_rate
+          )::NUMERIC(19, 6) AS exchange_rate
+    FROM base_rates ltbl
+    JOIN base_rates rtbl ON
+        ltbl.effective_date = rtbl.effective_date
     WHERE
         rtbl.target_currency_code = p_base_currency_code
     ORDER BY
