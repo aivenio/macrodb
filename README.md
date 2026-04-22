@@ -120,6 +120,20 @@ state (`common.state_mw`), and city (`common.city_mw`) information are exposed t
 The `common.currency_mw` table exposes a global list of currencies, their standard ISO codes, minor units and other details that
 may be required to build an agnostic system.
 
+## CI/CD Pipeline(s)
+
+[**Project Archon**](https://github.com/aivenio/project.archon) is a one-stop solution that integrates and updates
+data across all the projects in the organization. The details of dependent workflows for this project are as follows:
+
+<details>
+<summary>Click Here to View CI/CD Workflows</summary>
+
+  1. FOREX Rates ([`forexrates.yml`](https://github.com/aivenio/project.archon/blob/master/.github/workflows/forexrates.yml)) -
+    Updates the FOREX rates from the selected data source on a periodic (monthly) interval. The function file is available
+    [here](https://github.com/aivenio/project.archon/blob/master/main/forexrates_dbupdate.py).
+
+</details>
+
 ## Project Disclaimer
 
 This service is intended solely to provide a data structure that enables efficient management of databases containing various
