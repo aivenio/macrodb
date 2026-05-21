@@ -35,27 +35,27 @@ jobs:
           - 5432:5432
 
     steps:
-      - name: Checkout repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: ${{ github.head_ref || github.ref_name }}
 
-      - name: Apply schema from initialize.sql
+      - name: Apply Schema from Initialization File
         run: |
           psql postgresql://postgres:postgres@localhost:5432/mydb \
             -f database/initialize.sql
         env:
           PGPASSWORD: postgres
 
-      - name: Install tbls
+      - name: Install "tbls" Module
         run: |
           curl -sSL https://github.com/k1LoW/tbls/releases/latest/download/tbls_linux_amd64.tar.gz \
             | tar xz tbls
           sudo mv tbls /usr/local/bin/tbls
           tbls version
 
-      - name: Generate ER diagram (PNG)
+      - name: Generate ER Diagram (PNG)
         run: |
           mkdir -p docs/schema
           tbls doc \
@@ -71,7 +71,7 @@ jobs:
           npm install -g @mermaid-js/mermaid-cli
           mmdc --version
 
-      - name: Extract Mermaid ERD and render PNG
+      - name: Extract Mermaid ERD and Render PNG
         run: |
           python3 - <<'EOF'
           import re, pathlib
@@ -93,10 +93,10 @@ jobs:
             -b white \
             --width 1600
 
-          echo "ER diagram saved to docs/schema/erd.png"
+          echo "ER Diagram Saved to docs/schema/erd.png"
 
       # ── On push to master: commit the updated diagram back ──────────────────
-      - name: Commit ER diagram to master
+      - name: Commit ER Diagram to "master" Branch
         if: github.event_name == 'push'
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
@@ -106,7 +106,7 @@ jobs:
           commit_user_email: "github-actions[bot]@users.noreply.github.com"
 
       # ── On PR: upload artifact + post sticky comment ─────────────────────────
-      - name: Upload ER diagram artifact (PR)
+      - name: Upload ER Diagram Artifact (PR)
         if: github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
         with:
@@ -114,14 +114,14 @@ jobs:
           path: docs/schema/erd.png
           retention-days: 30
 
-      - name: Post ER diagram as PR comment
+      - name: Post ER Diagram as PR Comment
         if: github.event_name == 'pull_request'
         uses: marocchino/sticky-pull-request-comment@v2
         with:
           header: erd-diagram
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           message: |
-            ## 📊 ER Diagram — schema preview
+            ## 📊 ER Diagram - Schema Preview
 
             The `database/initialize.sql` file was modified in this PR.
 
