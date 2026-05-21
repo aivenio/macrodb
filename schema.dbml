@@ -1,0 +1,500 @@
+project macrodb {
+  database_type: 'postgresql'
+  note: '''
+  # Macroeconomics Database (`macrodb`)
+
+  A centralized **PostgreSQL v18.1** database that aggregates macroeconomic
+  data from open-source and proprietary providers. Structured to support
+  data-driven analysis across multiple geographic levels (continent → region
+  → subregion → country → state → city) and to feed forecasting models with
+  rapid, indexed access to indicators such as foreign-exchange rates.
+
+  ## Schema Layout
+
+  | schema   | purpose                                                              |
+  |:---------|:---------------------------------------------------------------------|
+  | `public` | Bootstrap reference data shared with subscribers (data sources).     |
+  | `common` | Geography, currency and transactional master/reference tables.       |
+  | `dev`    | Developer/auditor user-defined functions only — *no tables*.         |
+
+  ## Table Naming Convention
+
+  - `*_mw` → **M**aster, **W**orld scope (slowly-changing reference data).
+  - `*_tx` → **T**ransactional fact table (append-mostly time-series rows).
+
+  ## Logical Replication (Publications)
+
+  This database acts as a publication server exposing vital metadata to
+  subscriber databases. `wal_level = logical` is required on the publisher.
+
+  - **`macrodb_geography_table`** → `common.country_mw`, `common.state_mw`, `common.city_mw`
+  - **`macrodb_currency_table`**  → `common.currency_mw`
+
+  Subscriber tables should hold the same column shape but **drop incoming
+  foreign-key constraints** — logical replication does not guarantee
+  table-load order, and unresolved FKs would otherwise fail apply.
+  Subscribers receive `select`-only privileges to maintain a single source
+  of truth (see `revoke insert, update, delete ... from public`).
+
+  See [publication.conf.sql](database/publication.conf.sql) for the
+  authoritative publication definitions.
+
+  ## CI/CD
+
+  Managed through **Project Archon** which schedules per-table refreshes;
+  the FOREX pipeline runs monthly via
+  [forexrates.yml](https://github.com/aivenio/project.archon/blob/master/.github/workflows/forexrates.yml).
+  '''
+}
+
+
+// ============================================================================
+// public schema — shared bootstrap reference data
+// ============================================================================
+
+table public.data_source_mw {
+  data_source_id   char(5)      [pk] // pk_data_source_id
+  data_source_name varchar(64)  [not null, unique] // uq_data_source_name
+  data_source_desc varchar(256) [not null]
+  data_source_uri  varchar(128) [not null, unique] // uq_data_source_uri
+
+  note: '''
+  ## Data Source Master (`mw` = Master-World)
+
+  Master list of external data providers (free, paid, open-source) that
+  populate transactional tables in `macrodb`. Acts as the dimensional
+  lookup behind any `*_tx` table that needs to record *where* a row
+  originated from.
+
+  ### Relationships
+
+  - **Referenced by** `common.forex_rate_tx.data_source_id` via
+    `fk_forex_data_source_id` (`on update cascade`, `on delete restrict`).
+
+  ### Seeded Values
+
+  `ERAPI` (Exchange Rates API), `XECCV` (XE Currency Converter),
+  `OSEXR` (Open Exchange Rates), `OWIDT` (Our World in Data) — see
+  `database/schema/public/seed/data_source.sql`.
+  '''
+}
+
+
+// ============================================================================
+// common schema — geography hierarchy (continent → region → subregion → country → state → city)
+// ============================================================================
+
+table common.continent_mw {
+  continent_code char(2)     [pk] // pk_continent_code
+  continent_name varchar(64) [not null, unique] // uq_continent_name
+  wikidata_id    varchar(8)  [not null, unique] // uq_continent_wikidata_id
+  geoname_id     varchar(8)  [not null, unique] // uq_continent_geoname_id
+
+  note: '''
+  ## Continent Master (`mw` = Master-World)
+
+  Global list of continents keyed by a 2-character proxy code. Each row
+  carries the Wikipedia entity (`wikidata_id`) and GeoNames identifier
+  (`geoname_id`), resolvable globally via
+  `https://www.wikidata.org/entity/<wikidata_id>`.
+
+  ### Relationships
+
+  - **Referenced by** `common.country_mw.continent_code` via
+    `fk_country_continent_code`.
+  '''
+}
+
+table common.region_mw {
+  region_code char(3)     [pk] // pk_region_code
+  region_name varchar(64) [not null, unique] // uq_region_name
+  wikidata_id varchar(8)  [not null, unique] // uq_region_wikidata_id
+
+  note: '''
+  ## Region Master (`mw` = Master-World)
+
+  Geographic regions following UN M49 / UNStats-style groupings (e.g.
+  Americas, Europe, Asia, Africa, Oceania). 3-character code.
+
+  ### Relationships
+
+  - **Referenced by** `common.subregion_mw.region_code` via
+    `fk_subregion_region_code`.
+  - **Referenced by** `common.country_mw.region_code` via
+    `fk_country_region_code`.
+  '''
+}
+
+table common.subregion_mw {
+  subregion_code char(3)     [pk] // pk_subregion_code
+  subregion_name varchar(64) [not null, unique] // uq_subregion_name
+  region_code    char(3)     [not null, ref: > common.region_mw.region_code] // fk_subregion_region_code · on update cascade · on delete restrict
+  wikidata_id    varchar(8)  [not null, unique] // uq_subregion_wikidata_id
+
+  note: '''
+  ## Subregion Master (`mw` = Master-World)
+
+  Intermediate geographic grouping that nests under a region (e.g. *Southern
+  Asia*, *Western Europe*, *Sub-Saharan Africa*). Every subregion belongs
+  to exactly one region.
+
+  ### Relationships
+
+  - **Parent** → `common.region_mw` on `region_code`
+    (`fk_subregion_region_code`, `on update cascade`, `on delete restrict`).
+  - **Referenced by** `common.country_mw.subregion_code` via
+    `fk_country_subregion_code`.
+  '''
+}
+
+table common.country_mw {
+  country_code     char(3)      [pk] // pk_country_code
+  country_name     varchar(64)  [not null, unique] // uq_country_name
+  continent_code   char(2)      [not null, ref: > common.continent_mw.continent_code] // fk_country_continent_code · on update cascade · on delete restrict
+  region_code      char(3)      [not null, ref: > common.region_mw.region_code] // fk_country_region_code · on update cascade · on delete restrict
+  subregion_code   char(3)      [not null, ref: > common.subregion_mw.subregion_code] // fk_country_subregion_code · on update cascade · on delete restrict
+  iso2_code        char(2)      [not null, unique] // uq_country_iso2
+  numeric_code     char(3)      [not null, unique] // uq_country_numeric_code
+  top_level_domain char(3)      [unique] // uq_country_top_level_domain
+  wikidata_id      varchar(8)   [unique] // uq_country_wikidata_id
+  geoname_id       varchar(8)   [unique] // uq_country_geoname_id
+  country_flag_uri varchar(256) [unique] // uq_country_flag_uri
+
+  note: '''
+  ## Country Master (`mw` = Master-World) — 📡 **Published**
+
+  > **Publication:** `macrodb_geography_table`
+  >
+  > Exposed for logical replication to subscriber databases alongside
+  > `common.state_mw` and `common.city_mw`. Subscriber-side tables should
+  > **omit foreign-key constraints** to avoid load-order failures.
+
+  Global country list keyed by **ISO-3166 Alpha-3** (`country_code`). Also
+  carries ISO-3166 Alpha-2 (`iso2_code`), ISO-3166 Numeric (`numeric_code`),
+  ccTLD (`top_level_domain`), Wikidata / GeoNames identifiers, and a
+  hot-link to a country flag asset.
+
+  ### Relationships
+
+  - **Parents:**
+    - `common.continent_mw` (`fk_country_continent_code`)
+    - `common.region_mw` (`fk_country_region_code`)
+    - `common.subregion_mw` (`fk_country_subregion_code`)
+  - **Referenced by:**
+    - `common.state_mw.country_code` (`fk_state_country_code`)
+    - `common.city_mw.country_code` (`fk_city_country_code`)
+
+  All parent FKs use `on update cascade` / `on delete restrict`.
+  '''
+}
+
+table common.state_type_mw {
+  state_type_code char(3)     [pk] // pk_state_type
+  state_type_name varchar(64) [not null, unique] // uq_state_type_name
+
+  note: '''
+  ## State Type Master (`mw` = Master-World)
+
+  Small lookup classifying the *kind* of administrative division a row in
+  `common.state_mw` represents — e.g. *state*, *province*,
+  *union territory*, *emirate*, *oblast*, *prefecture*.
+
+  ### Relationships
+
+  - **Referenced by** `common.state_mw.state_type` via
+    `fk_state_state_type`.
+  '''
+}
+
+table common.state_mw {
+  state_uuid      char(5)       [pk] // pk_state_uuid
+  state_code      varchar(5)
+  state_name      varchar(64)   [not null]
+  country_code    char(3)       [not null, ref: > common.country_mw.country_code] // fk_state_country_code · on update cascade · on delete restrict
+  state_type      char(3)       [ref: > common.state_type_mw.state_type_code] // fk_state_state_type · on update cascade · on delete restrict
+  state_latitude  numeric(9, 6)
+  state_longitude numeric(9, 6)
+  wikidata_id     varchar(8)    [unique] // uq_state_wikidata_id
+  geoname_id      varchar(8)    [unique] // uq_state_geoname_id
+
+  indexes {
+    (country_code, state_name) [unique, name: 'uq_state_name']
+    (country_code, state_code) [unique, name: 'uq_state_code']
+  }
+
+  note: '''
+  ## State Master (`mw` = Master-World) — 📡 **Published**
+
+  > **Publication:** `macrodb_geography_table`
+  >
+  > Exposed for logical replication to subscriber databases.
+
+  Administrative subdivision (state / province / region) keyed by a
+  5-character private UUID (`state_uuid`). The public-facing `state_code`
+  is **not globally unique** on its own — it is only unique within a
+  country. Similarly, state names are only unique within their country.
+  Centroid coordinates are stored in `state_latitude` / `state_longitude`
+  with 6-decimal precision (~11 cm resolution).
+
+  ### Relationships
+
+  - **Parents:**
+    - `common.country_mw` (`fk_state_country_code`)
+    - `common.state_type_mw` (`fk_state_state_type`, *nullable* — type may be unknown)
+  - **Referenced by:**
+    - `common.city_mw.state_uuid` (`fk_city_state_uuid`)
+
+  ### Composite Unique Constraints
+
+  - `uq_state_name`: (`country_code`, `state_name`) — same state name may
+    repeat across different countries.
+  - `uq_state_code`: (`country_code`, `state_code`) — short codes are
+    namespaced per country.
+  '''
+}
+
+table common.city_mw {
+  city_code      char(5)       [pk] // pk_city_code
+  city_name      varchar(64)   [not null]
+  country_code   char(3)       [not null, ref: > common.country_mw.country_code] // fk_city_country_code · on update cascade · on delete restrict
+  state_uuid     char(5)       [not null, ref: > common.state_mw.state_uuid] // fk_city_state_uuid · on update cascade · on delete restrict
+  city_type      varchar(32)
+  city_latitude  numeric(9, 6)
+  city_longitude numeric(9, 6)
+  wikidata_id    varchar(8)    [unique] // uq_city_wikidata_id
+  geoname_id     varchar(8)    [unique] // uq_city_geoname_id
+
+  indexes {
+    (country_code, state_uuid, city_name) [unique, name: 'uq_city_name']
+  }
+
+  note: '''
+  ## City Master (`mw` = Master-World) — 📡 **Published**
+
+  > **Publication:** `macrodb_geography_table`
+  >
+  > Exposed for logical replication to subscriber databases.
+
+  City / town reference table. Names are **not globally unique** — they
+  are scoped to the parent `(country_code, state_uuid)` triple via
+  `uq_city_name`. `city_type` is a free-form descriptor (e.g. *city*,
+  *town*, *municipality*, *village*) — deliberately *not* a foreign key,
+  in contrast to the structured `state_type` lookup on `common.state_mw`.
+
+  ### Relationships
+
+  - **Parents:**
+    - `common.country_mw` (`fk_city_country_code`)
+    - `common.state_mw` (`fk_city_state_uuid`)
+
+  > **Note:** Both `country_code` and `state_uuid` are stored even though
+  > the country could be derived through `state_mw` — the redundancy is
+  > intentional, allowing efficient country-level partitioning / lookups
+  > without joining through state.
+
+  ### Composite Unique Constraints
+
+  - `uq_city_name`: (`country_code`, `state_uuid`, `city_name`)
+  '''
+}
+
+
+// ============================================================================
+// common schema — currency hierarchy (type → subtype → currency)
+// ============================================================================
+
+table common.currency_type_mw {
+  currency_type      char(1)      [pk] // pk_currency_type
+  currency_type_name varchar(32)  [not null, unique] // uq_currency_type_name
+  currency_type_desc varchar(128) [not null]
+  wikidata_id        varchar(12)  [not null, unique] // uq_currency_type_wikidata_id
+
+  note: '''
+  ## Currency Type Master (`mw` = Master-World)
+
+  Top-level classification of money. Seeded values:
+
+  | code | name                 | description                                              |
+  |:----:|:---------------------|:---------------------------------------------------------|
+  | `f`  | Fiat Currency        | Government-issued, not backed by precious metals.        |
+  | `c`  | Commodity Money      | Derived from a commodity, holds intrinsic value.         |
+  | `r`  | Representative Money | Medium of exchange with little or no intrinsic value.    |
+  | `d`  | Digital Currency     | Stored/exchanged on digital computers over the internet. |
+
+  ### Relationships
+
+  - **Referenced by** `common.currency_subtype_mw.currency_type` via
+    `fk_currency_subtype_currency_type`.
+  - **Referenced by** `common.currency_mw.currency_type` via
+    `fk_currency_currency_type`.
+  '''
+}
+
+table common.currency_subtype_mw {
+  currency_subtype      char(1)      [pk] // pk_currency_subtype
+  currency_subtype_name varchar(48)  [not null, unique] // uq_currency_subtype_name
+  currency_type         char(1)      [not null, ref: > common.currency_type_mw.currency_type] // fk_currency_subtype_currency_type · on update cascade · on delete restrict
+  currency_subtype_desc varchar(128) [not null]
+  wikidata_id           varchar(12)  [not null, unique] // uq_currency_subtype_wikidata_id
+
+  note: '''
+  ## Currency Subtype Master (`mw` = Master-World)
+
+  Granular partitioning of `currency_type` — used today primarily for
+  digital currencies (type `d`):
+
+  | subtype | name                                  | parent type |
+  |:-------:|:--------------------------------------|:-----------:|
+  | `c`     | Cryptocurrency                        | `d`         |
+  | `f`     | Central Bank Digital Currency (CBDC)  | `d`         |
+  | `s`     | Stablecoins                           | `d`         |
+  | `v`     | Virtual Currency                      | `d`         |
+
+  ### Relationships
+
+  - **Parent** → `common.currency_type_mw` on `currency_type`
+    (`fk_currency_subtype_currency_type`).
+  - **Referenced by** `common.currency_mw.currency_subtype` via
+    `fk_currency_currency_subtype` (nullable — most fiat currencies have
+    no subtype).
+  '''
+}
+
+table common.currency_mw {
+  currency_code     char(3)     [pk] // pk_currency_code
+  currency_name     varchar(64) [not null, unique] // uq_currency_name
+  currency_symbol   varchar(16) [unique] // uq_currency_symbol
+  currency_type     char(1)     [not null, ref: > common.currency_type_mw.currency_type] // fk_currency_currency_type · on update cascade · on delete restrict
+  currency_subtype  char(1)     [ref: > common.currency_subtype_mw.currency_subtype] // fk_currency_currency_subtype · on update cascade · on delete restrict
+  n_decimals        integer     [not null, default: 2]
+  minor_unit_name   varchar(32)
+  minor_unit_symbol varchar(16)
+  minor_unit_factor integer
+
+  note: '''
+  ## Currency Master (`mw` = Master-World) — 📡 **Published**
+
+  > **Publication:** `macrodb_currency_table`
+  >
+  > Exposed standalone (separately from the geography publication) so that
+  > subscribers needing only currency metadata do not pull the entire
+  > geography hierarchy.
+
+  ISO-4217 (and proxy) keyed currency reference. Seeded with ~180 entries
+  (fiat + commodity + crypto + special drawing rights) from
+  `database/schema/common/seed/currency.sql`. `n_decimals` defaults to `2`
+  (matching the majority of fiat currencies); minor-unit columns describe
+  the sub-denomination (e.g. *cent* / `¢` / 100 for `USD`).
+
+  ### Relationships
+
+  - **Parents:**
+    - `common.currency_type_mw` (`fk_currency_currency_type`)
+    - `common.currency_subtype_mw` (`fk_currency_currency_subtype`, *nullable*)
+  - **Referenced by** (twice, self-pair) `common.forex_rate_tx`:
+    - `base_currency_code` (`fk_base_currency_code`)
+    - `target_currency_code` (`fk_target_currency_code`)
+
+  ### Check Constraint
+
+  - `ck_minor_currency_null` — the triplet (`minor_unit_name`,
+    `minor_unit_symbol`, `minor_unit_factor`) must be *all null* or
+    *all populated*; partial population is rejected via
+    `num_nulls(...) in (0, 3)`. Prevents inconsistent minor-unit records.
+  '''
+}
+
+
+// ============================================================================
+// common schema — transactional fact tables
+// ============================================================================
+
+table common.forex_rate_tx {
+  forex_record_id      integer        [pk, increment] // pk_forex_record_id · generated always as identity
+  effective_date       date           [not null]
+  base_currency_code   char(3)        [not null, ref: > common.currency_mw.currency_code] // fk_base_currency_code · on update cascade · on delete restrict
+  target_currency_code char(3)        [not null, ref: > common.currency_mw.currency_code] // fk_target_currency_code · on update cascade · on delete restrict
+  exchange_rate        numeric(19, 6) [not null]
+  data_source_id       char(5)        [not null, ref: > public.data_source_mw.data_source_id] // fk_forex_data_source_id · on update cascade · on delete restrict
+
+  indexes {
+    (effective_date, base_currency_code, target_currency_code, data_source_id) [unique, name: 'uq_forex_value_from_source']
+  }
+
+  note: '''
+  ## Foreign Exchange Rate Transactions (`tx` = Transactional)
+
+  Central FX fact table. Each row records the rate at which one unit of
+  `base_currency_code` converts to `target_currency_code` on
+  `effective_date`, attributed to the provider in `data_source_id`.
+  Precision is `numeric(19, 6)` — 19 total digits, 6 fractional — which
+  accommodates extreme exchange ratios (e.g. hyper-inflated currencies)
+  without loss.
+
+  Populated periodically by the
+  [forexrates.yml](https://github.com/aivenio/project.archon/blob/master/.github/workflows/forexrates.yml)
+  workflow in Project Archon (companion Python package:
+  [sharkutilities/forexrates](https://github.com/sharkutilities/forexrates),
+  MIT-licensed).
+
+  ### Relationships
+
+  - **Parents:**
+    - `common.currency_mw` (twice — `fk_base_currency_code` and
+      `fk_target_currency_code` both point at `currency_code`)
+    - `public.data_source_mw` (`fk_forex_data_source_id`)
+
+  ### Composite Unique Constraint
+
+  - `uq_forex_value_from_source`: (`effective_date`, `base_currency_code`,
+    `target_currency_code`, `data_source_id`) — guarantees exactly one
+    rate per provider per currency-pair per date. Duplicate inserts from
+    the same source on the same date are rejected, allowing idempotent
+    re-runs of the ingestion pipeline.
+
+  ### Accessor & Audit Functions
+
+  | function                                       | purpose                                                                      |
+  |:-----------------------------------------------|:-----------------------------------------------------------------------------|
+  | `common.forex_from_src_for_range_udf`          | Raw extract for a date range and data source, ordered desc.                  |
+  | `common.forex_from_src_for_range_base_udf`     | Rebased to an arbitrary base currency (CTE-driven, single-scan; v1.1.2+).    |
+  | `dev.missing_date_in_forex_udf`                | Audit — dates within range with no rows ingested.                            |
+  | `dev.missing_currency_in_forex_udf`            | Audit — currencies present in `currency_mw` but absent from FX rows.         |
+  | `dev.missing_forex_for_currencies_udf`         | Audit — missing (date, currency) tuples for a given currency code list.      |
+  '''
+}
+
+
+// ============================================================================
+// logical grouping — drives layout in dbdiagram.io
+// ============================================================================
+
+tablegroup published_geography {
+  common.country_mw
+  common.state_mw
+  common.city_mw
+}
+
+tablegroup published_currency {
+  common.currency_mw
+}
+
+tablegroup reference_geography {
+  common.continent_mw
+  common.region_mw
+  common.subregion_mw
+  common.state_type_mw
+}
+
+tablegroup reference_currency {
+  common.currency_type_mw
+  common.currency_subtype_mw
+}
+
+tablegroup transactional {
+  common.forex_rate_tx
+}
+
+tablegroup data_sources {
+  public.data_source_mw
+}
