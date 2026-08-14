@@ -2,14 +2,23 @@ INSERT INTO common.currency_type_mw (currency_type, currency_type_name, currency
     ('F', 'Fiat Currency', 'Government issued currency which is not backed by a precious metals, nor commodities nor any other tangible assets.', 'Q240532'),
     ('C', 'Commodity Money', 'A money whosh value is derived from a commodity, and has an intrinsic value.', 'Q1470163'),
     ('R', 'Representative Money', 'A medium of exchange which has very little or no intrinsic value of its own.', 'Q7314254'),
-    ('D', 'Digital Currency', 'A type of money that is stored or exchanged on digital computers over the internet.', 'Q10836209');
+    ('D', 'Digital Currency', 'A type of money that is stored or exchanged on digital computers over the internet.', 'Q10836209')
+ON CONFLICT (currency_type) DO UPDATE SET
+    currency_type_name = EXCLUDED.currency_type_name
+    , currency_type_desc = EXCLUDED.currency_type_desc
+    , wikidata_id = EXCLUDED.wikidata_id;
 
 
 INSERT INTO common.currency_subtype_mw (currency_subtype, currency_subtype_name, currency_type, currency_subtype_desc, wikidata_id) VALUES
     ('C', 'Cryptocurrency', 'D', 'A digital currency that is designed to work over the network.', 'Q13479982'),
     ('F', 'Central Bank Digital Currency (CBDC)', 'D', 'A digital fiat currency which is issued by a central bank.', 'Q39086217'),
     ('S', 'Stablecoins', 'D', 'A type of cryptocurrency where the value is pegged to a referencing asset.', 'Q55582088'),
-    ('V', 'Virtual Currency', 'D', 'Digital currency which are unregulated and typically controlled by its developers.', 'Q4112083');
+    ('V', 'Virtual Currency', 'D', 'Digital currency which are unregulated and typically controlled by its developers.', 'Q4112083')
+ON CONFLICT (currency_subtype) DO UPDATE SET
+    currency_subtype_name = EXCLUDED.currency_subtype_name
+    , currency_type = EXCLUDED.currency_type
+    , currency_subtype_desc = EXCLUDED.currency_subtype_desc
+    , wikidata_id = EXCLUDED.wikidata_id;
 
 
 INSERT INTO common.currency_mw (currency_code, currency_name, currency_type) VALUES
@@ -136,7 +145,7 @@ INSERT INTO common.currency_mw (currency_code, currency_name, currency_type) VAL
     ('SOS', 'Somalian Shilling', 'F'),
     ('SRD', 'Surinamese Dollar', 'F'),
     ('SSP', 'South Sudanese Pound', 'F'),
-    ('STD', 'Sã£O Tomã© And Prã­Ncipe Dobra', 'F'),
+    ('STD', 'Sã£O Tomã© And PrãNcipe Dobra', 'F'),
     ('STN', 'Sao Tomean Dobra', 'F'),
     ('SVC', 'Salvadoran Colã³n', 'F'),
     ('SYP', 'Syrian Pound', 'F'),
@@ -156,8 +165,8 @@ INSERT INTO common.currency_mw (currency_code, currency_name, currency_type) VAL
     ('UYU', 'Uruguayan Peso', 'F'),
     ('UYW', 'Unidad Previsional[16]', 'F'),
     ('UZS', 'Uzbekistani Sum', 'F'),
-    ('VED', 'Venezuelan Digital Bolã­Var[17]', 'F'),
-    ('VES', 'Venezuelan Sovereign Bolã­Var[11]', 'F'),
+    ('VED', 'Venezuelan Digital BolãVar[17]', 'F'),
+    ('VES', 'Venezuelan Sovereign BolãVar[11]', 'F'),
     ('WST', 'Samoan Tala', 'F'),
     ('XCD', 'East Caribbean Dollar', 'F'),
     ('YER', 'Yemeni Rial', 'F'),
@@ -184,7 +193,7 @@ INSERT INTO common.currency_mw (currency_code, currency_name, currency_type) VAL
     ('RWF', 'Rwandan Franc', 'F'),
     ('SLL', 'Sierra Leonean Leone', 'F'),
     ('UGX', 'Ugandan Shilling', 'F'),
-    ('VEF', 'Venezuelan Bolã­Var Fuerte', 'F'),
+    ('VEF', 'Venezuelan BolãVar Fuerte', 'F'),
     ('VND', 'Vietnamese Dong', 'F'),
     ('VUV', 'Vanuatu Vatu', 'F'),
     ('XAF', 'Cfa Franc Beac', 'F'),
@@ -196,4 +205,7 @@ INSERT INTO common.currency_mw (currency_code, currency_name, currency_type) VAL
     ('XPF', 'Cfp Franc', 'F'),
     ('ZMK', 'Zambian Kwacha (Pre-2013)', 'F'),
     ('ZWL', 'Zimbabwean Dollar', 'F'),
-    ('BYD', 'Belarusian Ruble (Alternate)', 'F');
+    ('BYD', 'Belarusian Ruble (Alternate)', 'F')
+ON CONFLICT (currency_code) DO UPDATE SET
+    currency_name = EXCLUDED.currency_name
+    , currency_type = EXCLUDED.currency_type;

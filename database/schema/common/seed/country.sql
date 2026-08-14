@@ -5,7 +5,11 @@ INSERT INTO common.continent_mw (continent_code, continent_name, wikidata_id, ge
     ('NA', 'NORTH AMERICA', 'Q49', '6255149'),
     ('SA', 'SOUTH AMERICA', 'Q18', '6255150'),
     ('AU', 'AUSTRALIA', 'Q3960', '6255151'),
-    ('AN', 'ANTARTICA', 'Q51', '6255152');
+    ('AN', 'ANTARCTICA', 'Q51', '6255152')
+ON CONFLICT (continent_code) DO UPDATE SET
+    continent_name = EXCLUDED.continent_name
+    , wikidata_id = EXCLUDED.wikidata_id
+    , geoname_id = EXCLUDED.geoname_id;
 
 
 INSERT INTO common.region_mw (region_code, region_name, wikidata_id) VALUES
@@ -14,7 +18,10 @@ INSERT INTO common.region_mw (region_code, region_name, wikidata_id) VALUES
     ('AFR', 'AFRICA', 'Q15'),
     ('EUR', 'EUROPE', 'Q46'),
     ('AMN', 'AMERICAS', 'Q828'),
-    ('OCN', 'OCEANIA', 'Q55643');
+    ('OCN', 'OCEANIA', 'Q55643')
+ON CONFLICT (region_code) DO UPDATE SET
+    region_name = EXCLUDED.region_name
+    , wikidata_id = EXCLUDED.wikidata_id;
 
 
 INSERT INTO common.subregion_mw (subregion_code, subregion_name, region_code, wikidata_id) VALUES
@@ -39,7 +46,11 @@ INSERT INTO common.subregion_mw (subregion_code, subregion_name, region_code, wi
     ('SEU', 'Southern Europe', 'EUR', 'Q27449'),
     ('WAF', 'Western Africa', 'AFR', 'Q4412'),
     ('WAS', 'Western Asia', 'ASA', 'Q27293'),
-    ('WEU', 'Western Europe', 'EUR', 'Q27496');
+    ('WEU', 'Western Europe', 'EUR', 'Q27496')
+ON CONFLICT (subregion_code) DO UPDATE SET
+    subregion_name = EXCLUDED.subregion_name
+    , region_code = EXCLUDED.region_code
+    , wikidata_id = EXCLUDED.wikidata_id;
 
 
 INSERT INTO common.country_mw (country_code, country_name, continent_code, region_code, subregion_code, iso2_code, numeric_code, top_level_domain) VALUES
@@ -288,7 +299,15 @@ INSERT INTO common.country_mw (country_code, country_name, continent_code, regio
     ('ESH', 'Western Sahara', 'AF', 'AFR', 'NAF', 'EH', '732', '.eh'),
     ('YEM', 'Yemen', 'AS', 'ASA', 'WAS', 'YE', '887', '.ye'),
     ('ZMB', 'Zambia', 'AF', 'AFR', 'SAF', 'ZM', '894', '.zm'),
-    ('ZWE', 'Zimbabwe', 'AF', 'AFR', 'EAF', 'ZW', '716', '.zw');
+    ('ZWE', 'Zimbabwe', 'AF', 'AFR', 'EAF', 'ZW', '716', '.zw')
+ON CONFLICT (country_code) DO UPDATE SET
+    country_name = EXCLUDED.country_name
+    , continent_code = EXCLUDED.continent_code
+    , region_code = EXCLUDED.region_code
+    , subregion_code = EXCLUDED.subregion_code
+    , iso2_code = EXCLUDED.iso2_code
+    , numeric_code = EXCLUDED.numeric_code
+    , top_level_domain = EXCLUDED.top_level_domain;
 
 
 INSERT INTO common.state_type_mw (state_type_code, state_type_name) VALUES
@@ -384,7 +403,9 @@ INSERT INTO common.state_type_mw (state_type_code, state_type_name) VALUES
     ('UNA', 'UNITARY AUTHORITY'),
     ('URB', 'URBAN MUNICIPALITY'),
     ('VIL', 'VILLAGE'),
-    ('VOI', 'VOIVODSHIP');
+    ('VOI', 'VOIVODSHIP')
+ON CONFLICT (state_type_code) DO UPDATE SET
+    state_type_name = EXCLUDED.state_type_name;
 
 
 INSERT INTO common.state_mw (state_uuid, state_code, state_name, country_code, state_type, state_latitude, state_longitude) VALUES
@@ -606,4 +627,11 @@ INSERT INTO common.state_mw (state_uuid, state_code, state_name, country_code, s
     ('AF5AB', 'JM', 'Jerusalem', 'ISR', 'DIS', 31.7648243, 34.994751),
     ('5D833', 'Z', 'Northern', 'ISR', 'DIS', 36.1511864, -95.9951763),
     ('E7FA3', 'D', 'Southern', 'ISR', 'DIS', 40.7137586, -74.0009059),
-    ('94B6C', 'TA', 'Tel Aviv', 'ISR', 'DIS', 32.0929075, 34.8072165);
+    ('94B6C', 'TA', 'Tel Aviv', 'ISR', 'DIS', 32.0929075, 34.8072165)
+ON CONFLICT (state_uuid) DO UPDATE SET
+    state_code = EXCLUDED.state_code
+    , state_name = EXCLUDED.state_name
+    , country_code = EXCLUDED.country_code
+    , state_type = EXCLUDED.state_type
+    , state_latitude = EXCLUDED.state_latitude
+    , state_longitude = EXCLUDED.state_longitude;
